@@ -1,20 +1,67 @@
-import { Container, Typography, List, ListItem, ListItemText, ListItemAvatar, Avatar, IconButton, Button } from "@mui/material";
+import { useState } from "react";
+import { useCartStore } from "../store/useCartStore";
+import {
+  Container,
+  Typography,
+  List,
+  ListItem,
+  ListItemAvatar,
+  Avatar,
+  ListItemText,
+  IconButton,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+} from "@mui/material";
 import { Add, Remove, Delete } from "@mui/icons-material";
-import { useCart } from "../context/CartContext";
 
 export default function Cart() {
-  const { cart, removeFromCart, increaseQuantity, decreaseQuantity, clearCart } = useCart();
+  const { cart, removeFromCart, increaseQuantity, decreaseQuantity, clearCart } = useCartStore();
+
+  const [openRemoveDialog, setOpenRemoveDialog] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
+
+  const [openClearCartDialog, setOpenClearCartDialog] = useState(false);
+
+  const handleOpenRemoveDialog = (id: number) => {
+    setSelectedItemId(id);
+    setOpenRemoveDialog(true);
+  };
+
+  const handleCloseRemoveDialog = () => {
+    setOpenRemoveDialog(false);
+    setSelectedItemId(null);
+  };
+
+  const handleConfirmRemove = () => {
+    if (selectedItemId !== null) {
+      removeFromCart(selectedItemId);
+    }
+    handleCloseRemoveDialog();
+  };
+
+  const handleOpenClearCartDialog = () => {
+    setOpenClearCartDialog(true);
+  };
+
+  const handleCloseClearCartDialog = () => {
+    setOpenClearCartDialog(false);
+  };
+
+  const handleConfirmClearCart = () => {
+    clearCart();
+    handleCloseClearCartDialog();
+  };
 
   return (
     <Container sx={{ marginTop: 4, textAlign: "center" }}>
-      <Typography variant="h4" gutterBottom>
-        Your Cart
-      </Typography>
+      <Typography variant="h4" gutterBottom>Your Cart</Typography>
 
       {cart.length === 0 ? (
-        <Typography variant="h6" color="text.secondary">
-          Your cart is empty 😔
-        </Typography>
+        <Typography variant="h6" color="text.secondary">Your cart is empty 😔</Typography>
       ) : (
         <>
           <List>
@@ -25,7 +72,6 @@ export default function Cart() {
                 </ListItemAvatar>
                 <ListItemText primary={item.title} secondary={`$${item.price} x ${item.quantity}`} />
                 
-                {/* Quantity Controls */}
                 <IconButton onClick={() => decreaseQuantity(item.id)} color="primary">
                   <Remove />
                 </IconButton>
@@ -34,8 +80,7 @@ export default function Cart() {
                   <Add />
                 </IconButton>
 
-                {/* Remove Item */}
-                <IconButton onClick={() => removeFromCart(item.id)} color="error">
+                <IconButton onClick={() => handleOpenRemoveDialog(item.id)} color="error">
                   <Delete />
                 </IconButton>
               </ListItem>
@@ -46,11 +91,39 @@ export default function Cart() {
             Total: ${cart.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2)}
           </Typography>
 
-          <Button variant="contained" color="secondary" sx={{ marginTop: 2 }} onClick={clearCart}>
+          <Button variant="contained" color="secondary" sx={{ marginTop: 2 }} onClick={handleOpenClearCartDialog}>
             Clear Cart
           </Button>
         </>
       )}
+
+      {/* Confirmation Dialog for Removing an Item */}
+      <Dialog open={openRemoveDialog} onClose={handleCloseRemoveDialog}>
+        <DialogTitle>Remove Item</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to remove this item from your cart?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseRemoveDialog} color="primary">Cancel</Button>
+          <Button onClick={handleConfirmRemove} color="error">Remove</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Confirmation Dialog for Clearing the Cart */}
+      <Dialog open={openClearCartDialog} onClose={handleCloseClearCartDialog}>
+        <DialogTitle>Clear Cart</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to clear your entire cart? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseClearCartDialog} color="primary">Cancel</Button>
+          <Button onClick={handleConfirmClearCart} color="error">Clear Cart</Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }
